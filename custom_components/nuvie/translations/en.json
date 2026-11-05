@@ -1,0 +1,70 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Nuvie Planner",
+        "description": "Where should the plan come from?",
+        "menu_options": {
+          "cloud": "Connect to my Nuvie account (recommended: stays up to date)",
+          "files": "Use an export I unzipped into the config folder"
+        }
+      },
+      "cloud": {
+        "title": "Nuvie server",
+        "description": "The Nuvie Planner to connect to. Leave it as it is unless you run your own.",
+        "data": {
+          "url": "Address"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Connect Nuvie again",
+        "description": "Nuvie no longer accepts this Home Assistant: it was disconnected in Nuvie, or the project was deleted or you lost access to it. Connect again to keep getting the plan."
+      },
+      "files": {
+        "title": "Nuvie Planner",
+        "description": "Reads the Home Assistant export from Nuvie Planner at {path} (unzip the export into your config folder first).",
+        "data": {
+          "sync_areas": "Create the plan's floors and rooms as floors and areas",
+          "assign_entities": "Put linked devices in their rooms"
+        },
+        "data_description": {
+          "sync_areas": "Existing floors and areas with the same names are reused; nothing is renamed or deleted.",
+          "assign_entities": "Only devices that don't have a room yet."
+        }
+      }
+    },
+    "progress": {
+      "pair": "Open this link, sign in to Nuvie and pick the project:\n\n[{url}]({url})\n\nCheck Nuvie shows the code **{code}**. This finishes on its own once you approve."
+    },
+    "error": {
+      "no_export": "No Nuvie export found. Unzip the file from Export → Home Assistant into your Home Assistant config folder.",
+      "bad_export": "The Nuvie export couldn't be read. Export it again from Nuvie.",
+      "bad_url": "Enter an address starting with https://"
+    },
+    "abort": {
+      "single_instance_allowed": "Nuvie Planner is already set up.",
+      "cannot_connect": "Couldn't reach Nuvie. Check Home Assistant is online and try again.",
+      "denied": "The connection was declined in Nuvie.",
+      "expired": "The code expired before it was approved. Add the integration again to get a new one.",
+      "reauth_successful": "Connected to Nuvie again."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Nuvie Planner",
+        "description": "Saving runs the sync again.",
+        "data": {
+          "sync_areas": "Create the plan's floors and rooms as floors and areas",
+          "assign_entities": "Put linked devices in their rooms"
+        }
+      }
+    }
+  },
+  "services": {
+    "sync": {
+      "name": "Sync from the plan",
+      "description": "Gets the latest plan from Nuvie (when connected to your account), then creates any missing floors and areas and puts linked devices that have no room in their rooms."
+    }
+  }
+}
