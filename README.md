@@ -5,6 +5,7 @@ The house you planned in [Nuvie Planner](https://planner.nuvie.in), in Home Assi
 - **Floors and rooms.** The plan's storeys and rooms become Home Assistant floors and areas. Ones with the same name are reused; nothing is renamed or deleted.
 - **Devices in their rooms.** Lights and devices you linked to an entity in Nuvie go into their room, if they don't have one yet.
 - **A 3D card** (`custom:nuvie-home-card`): the house with every linked device on it, live. Lights that are on glow and light their room, and tapping a light, switch or fan toggles it.
+- **Security at a glance.** A triggered alarm or smoke turns the house red and names the room, motion lights up its room, a doorbell ring shows a banner, and a camera button shows what each camera covers.
 - **Always up to date.** Connected to your Nuvie account, Home Assistant checks for a newer plan every 10 minutes and syncs it on its own.
 
 ## Install
@@ -36,6 +37,7 @@ type: custom:nuvie-home-card
 # weather: live         # live | clear | partly | overcast | rain | fog
 # weather_entity: weather.home
 # show_settings: true   # the sliders button (quality, time, weather per device)
+# show_coverage: false  # draw what each camera sees
 ```
 
 Admins get a pencil button on the card to link any device to an entity from a list. Those links are kept in Home Assistant and win over the plan's.

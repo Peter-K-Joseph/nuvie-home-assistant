@@ -65,7 +65,7 @@ from .const import (
     UPDATE_MINUTES,
 )
 from .cloud import NuvieAuthError, NuvieError
-from .sync import ENTITY_RE, EntityInfo, SyncPlan, apply_links, link_key, linked_entities, plan_sync, summary, validate_manifest
+from .sync import ENTITY_RE, RING, EntityInfo, SyncPlan, apply_links, link_key, linked_entities, plan_sync, summary, validate_manifest
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -323,7 +323,8 @@ class NuvieModelView(HomeAssistantView):
 class NuvieLinksView(HomeAssistantView):
     """Link a planned device (or one switch button) to an entity, from the card's edit mode. Admins only.
 
-    POST {"device_id": "...", "gang_id": "..." | null, "entity_id": "light.x" | "" | null}
+    POST {"device_id": "...", "gang_id": "..." | "@ring" | null, "entity_id": "light.x" | "" | null}
+    gang_id is a switch button's id, or "@ring" for a doorbell's ring entity.
     "" = not linked, null = back to the plan's link. Answers with the device as the card sees it.
     """
 
@@ -357,7 +358,10 @@ class NuvieLinksView(HomeAssistantView):
         device = next((d for d in manifest["devices"] if d["id"] == device_id), None)
         if device is None:
             return self.json_message(f"No device {device_id} in the plan", 404)
-        if gang_id and not any(c.get("gang_id") == gang_id for c in device.get("controls") or []):
+        if gang_id == RING:
+            if "ring_entity_id" not in device:
+                return self.json_message(f"{device_id} isn't a doorbell", 404)
+        elif gang_id and not any(c.get("gang_id") == gang_id for c in device.get("controls") or []):
             return self.json_message(f"{device_id} has no button {gang_id}", 404)
 
         await links(hass).async_set(link_key(device_id, gang_id), entity_id)

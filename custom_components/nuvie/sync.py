@@ -152,11 +152,11 @@ def plan_sync(
 
 
 def linked_entities(manifest: dict[str, Any]) -> list[tuple[str, str | None]]:
-    """Every linked entity once, with its device's plan area: devices, then smart-switch buttons."""
+    """Every linked entity once, with its device's plan area: devices, then smart-switch buttons, then doorbell rings."""
     out: list[tuple[str, str | None]] = []
     seen: set[str] = set()
     for d in manifest["devices"]:
-        ids = [d.get("entity_id")] + [c.get("entity_id") for c in d.get("controls") or []]
+        ids = [d.get("entity_id")] + [c.get("entity_id") for c in d.get("controls") or []] + [d.get("ring_entity_id")]
         for entity_id in ids:
             if entity_id and entity_id not in seen:
                 seen.add(entity_id)
@@ -166,9 +166,12 @@ def linked_entities(manifest: dict[str, Any]) -> list[tuple[str, str | None]]:
 
 ENTITY_RE = re.compile(r"^[a-z_]+\.[a-z0-9_]+$")
 
+# the link slot of a doorbell's ring entity (a switch button's slot is its gang id)
+RING = "@ring"
+
 
 def link_key(device_id: str, gang_id: str | None = None) -> str:
-    """Key of a link made in Home Assistant: the device, or one of its switch buttons."""
+    """Key of a link made in Home Assistant: the device, one of its switch buttons, or its ring (RING)."""
     return f"{device_id}#{gang_id}" if gang_id else device_id
 
 
@@ -187,6 +190,10 @@ def apply_links(manifest: dict[str, Any], links: dict[str, str]) -> dict[str, An
         if key in links:
             d["entity_id"] = links[key] or None
             d["linked_in"] = "home_assistant"
+        ring = link_key(d["id"], RING)
+        if "ring_entity_id" in d and ring in links:
+            d["ring_entity_id"] = links[ring] or None
+            d["ring_linked_in"] = "home_assistant"
         if d.get("controls"):
             controls = []
             for c in d["controls"]:
