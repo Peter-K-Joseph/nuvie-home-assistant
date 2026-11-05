@@ -18,7 +18,7 @@
       },
       "reauth_confirm": {
         "title": "Connect Nuvie again",
-        "description": "Nuvie no longer accepts this Home Assistant: it was disconnected in Nuvie, or the project was deleted or you lost access to it. Connect again to keep getting the plan."
+        "description": "Nuvie no longer accepts this Home Assistant: it was disconnected in Nuvie, the project was deleted or you lost access to it, or the project's plan no longer includes Home Assistant. Connect again to keep getting the plan."
       },
       "files": {
         "title": "Nuvie Planner",
