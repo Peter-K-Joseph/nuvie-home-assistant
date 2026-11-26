@@ -4,12 +4,18 @@ The plan arrives as the same zip as Export → Home Assistant (minus the integra
 and the model): nuvie/nuvie_home.json, nuvie/dashboard/*.yaml, nuvie/README.md and
 www/nuvie/*.svg. Only those paths are written, each one atomically, so a bad or
 hostile zip can't write anywhere else, and the card never reads a half-written file.
+
+The plan images are also kept in nuvie/plan/, where the integration serves them to
+signed-in users (/api/nuvie/plan/<floor_id>.svg): Home Assistant only serves www/
+(/local) when that folder existed when it started, so the card doesn't rely on it.
+www/nuvie/ is still written, for the stock picture-elements cards.
 """
 
 from __future__ import annotations
 
 import io
 import os
+import re
 import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -19,7 +25,13 @@ ALLOWED = {
     ("nuvie",): {".json", ".md"},
     ("nuvie", "dashboard"): {".yaml"},
     ("www", "nuvie"): {".svg"},
+    ("nuvie", "plan"): {".svg"},
 }
+# where the integration keeps (and serves) the plan images, and where a manual export puts them
+PLAN_FOLDER = ("nuvie", "plan")
+WWW_FOLDER = ("www", "nuvie")
+# a storey's id in the plan (haSlug + a number): no dots or slashes, so it can't leave the folder
+FLOOR_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 MAX_FILE = 20 * 1024 * 1024
 MAX_TOTAL = 60 * 1024 * 1024
 
@@ -75,15 +87,27 @@ def write_atomic(path: Path, data: bytes) -> None:
         raise
 
 
+def with_plan_copies(files: dict[str, bytes]) -> dict[str, bytes]:
+    """The plan's files plus a copy of each www/nuvie/<floor>.svg in nuvie/plan/ (unless the zip has one)."""
+    out = dict(files)
+    for name, data in files.items():
+        p = PurePosixPath(name)
+        if tuple(p.parts[:-1]) == WWW_FOLDER and p.suffix == ".svg":
+            out.setdefault("/".join((*PLAN_FOLDER, p.name)), data)
+    return out
+
+
 def write_bundle(config_dir: Path, files: dict[str, bytes]) -> list[str]:
-    """Write the plan's files, the manifest last; remove plan images and cards the new plan no longer has.
+    """Write the plan's files (with the plan images' copies), the manifest last; remove plan images and
+    cards the new plan no longer has.
 
     Returns the paths written.
     """
+    files = with_plan_copies(files)
     names = sorted(files, key=lambda n: n == "nuvie/nuvie_home.json")
     for name in names:
         write_atomic(config_dir / name, files[name])
-    for folder, suffix in ((("nuvie", "dashboard"), ".yaml"), (("www", "nuvie"), ".svg")):
+    for folder, suffix in ((("nuvie", "dashboard"), ".yaml"), (WWW_FOLDER, ".svg"), (PLAN_FOLDER, ".svg")):
         d = config_dir.joinpath(*folder)
         if not d.is_dir():
             continue
@@ -92,3 +116,11 @@ def write_bundle(config_dir: Path, files: dict[str, bytes]) -> list[str]:
             if old.is_file() and old.suffix == suffix and rel not in files:
                 old.unlink()
     return names
+
+
+def plan_image_paths(config_dir: Path, floor_id: str) -> list[Path]:
+    """Where a storey's plan image may be, best first: nuvie/plan/ (the integration's copy), then
+    www/nuvie/ (an export unzipped by hand). Empty when floor_id isn't a plan id (like "../x")."""
+    if not isinstance(floor_id, str) or not FLOOR_ID_RE.fullmatch(floor_id):
+        return []
+    return [config_dir.joinpath(*folder, f"{floor_id}.svg") for folder in (PLAN_FOLDER, WWW_FOLDER)]

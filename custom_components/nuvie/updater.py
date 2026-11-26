@@ -3,7 +3,9 @@
 Every few minutes (and on `nuvie.sync`) it asks Nuvie for the plan with the
 ETag of the copy it has; Nuvie answers 304 until the project is saved with
 changes. A new plan is written into <config>/nuvie/ and <config>/www/nuvie/,
-the same place a manual export goes, so everything else reads it as before.
+the same place a manual export goes, so everything else reads it as before;
+the plan images are also copied to <config>/nuvie/plan/, where the card gets
+them (/api/nuvie/plan/<floor_id>.svg) without waiting for a restart to serve /local.
 The 3D model is fetched after a new plan; Nuvie may still be building it, so
 that's retried in the background until it's ready.
 """

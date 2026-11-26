@@ -15,7 +15,7 @@ The house you planned in [Nuvie Planner](https://planner.nuvie.in), in Home Assi
 1. Click the button above (or in HACS: ⋮ → **Custom repositories**, add this repository as an **Integration**). Download **Nuvie Planner**, then restart Home Assistant.
 2. [![Add the integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=nuvie) or go to **Settings → Devices & services → Add integration → Nuvie Planner**.
 3. Pick **Connect to my Nuvie account**. Home Assistant shows a link and a code: open the link, sign in to Nuvie, pick the project and click **Connect**. Home Assistant finishes on its own.
-4. Edit a dashboard, add a card and pick **Nuvie home (3D)**.
+4. Edit a dashboard, add a card and pick **Nuvie home (3D)** or **Nuvie floor plan (2D)** (lighter, good on wall tablets). Not in the list? Hard-refresh the page (Ctrl / Cmd + Shift + R) or reset the companion app's frontend cache.
 
 Your Nuvie password never goes to Home Assistant: Nuvie gives it a token for that one project. You can disconnect it any time in Nuvie under **Settings → Home Assistant**, or by removing the integration here.
 

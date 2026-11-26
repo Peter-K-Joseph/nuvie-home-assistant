@@ -6,8 +6,9 @@
   end up in <config>/nuvie/, and everything below reads them from there.
 - Creates the plan's floors and rooms as Home Assistant floors and areas, and
   puts linked devices in their rooms (only ones that have no room yet).
-- Serves the plan and the 3D model to the `custom:nuvie-home-card` dashboard
-  card at /api/nuvie/manifest and /api/nuvie/model (signed-in users only),
+- Serves the plan, the 3D model and each storey's plan image to the
+  `custom:nuvie-home-card` dashboard card at /api/nuvie/manifest,
+  /api/nuvie/model and /api/nuvie/plan/<floor_id>.svg (signed-in users only),
   and loads the card's script on every dashboard.
 - `nuvie.sync` runs the sync again (paired: after fetching the latest plan;
   unzipped: e.g. after copying in a new export). A new export is also synced
@@ -64,6 +65,7 @@ from .const import (
     STORAGE_VERSION,
     UPDATE_MINUTES,
 )
+from .bundle import plan_image_paths
 from .cloud import NuvieAuthError, NuvieError
 from .sync import ENTITY_RE, RING, EntityInfo, SyncPlan, apply_links, link_key, linked_entities, plan_sync, summary, validate_manifest
 
@@ -132,6 +134,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     await links(hass).async_load()
     hass.http.register_view(NuvieManifestView())
     hass.http.register_view(NuvieModelView())
+    hass.http.register_view(NuviePlanView())
     hass.http.register_view(NuvieLinksView())
 
     async def handle_sync(call: ServiceCall) -> None:
@@ -318,6 +321,43 @@ class NuvieModelView(HomeAssistantView):
         if not await hass.async_add_executor_job(path.is_file):
             return self.json_message("No 3D model yet (connected to Nuvie: it's still being built, or your plan has no 3D export; unzipped: tick 'Include the 3D model' when exporting)", 404)
         return web.FileResponse(path, headers={"Content-Type": "model/gltf-binary", "Cache-Control": "no-cache"})
+
+
+def _find_plan_image(config_dir: Path, floor_id: str) -> Path | None:
+    """The storey's plan image (blocking: run in the executor)."""
+    return next((p for p in plan_image_paths(config_dir, floor_id) if p.is_file()), None)
+
+
+class NuviePlanView(HomeAssistantView):
+    """A storey's plan image (SVG), for the card's 2D plan.
+
+    From <config>/nuvie/plan/ (kept there by the Nuvie connection), else <config>/www/nuvie/ (an
+    export unzipped by hand). Served here, to signed-in users, so the card doesn't depend on
+    /local, which Home Assistant only serves when <config>/www existed when it started.
+    """
+
+    url = "/api/nuvie/plan/{floor_id}"
+    name = "api:nuvie:plan"
+    requires_auth = True
+
+    async def get(self, request: web.Request, floor_id: str) -> web.StreamResponse:
+        hass: HomeAssistant = request.app["hass"]
+        floor_id = floor_id[:-4] if floor_id.endswith(".svg") else floor_id
+        if not plan_image_paths(Path(hass.config.path()), floor_id):
+            return self.json_message("Not a floor id", 400)
+        path = await hass.async_add_executor_job(_find_plan_image, Path(hass.config.path()), floor_id)
+        if path is None:
+            return self.json_message(f"No plan image for {floor_id}", 404)
+        return web.FileResponse(
+            path,
+            headers={
+                "Content-Type": "image/svg+xml",
+                "Cache-Control": "no-cache",
+                # a picture, nothing more: no scripts, no outside requests
+                "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:",
+                "X-Content-Type-Options": "nosniff",
+            },
+        )
 
 
 class NuvieLinksView(HomeAssistantView):
